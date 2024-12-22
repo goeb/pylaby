@@ -51,15 +51,19 @@ def is_good_starting_point(laby_model, random_row, random_column):
     return True
 
 def select_starting_point(laby_model):
-    while True:
+    count = 0
+    # Look for a valid starting point
+    # If not found after 1000 attempts, then consider that no starting point is available
+    while count < 1000:
+        count += 1
         random_row = int(random.uniform(0, len(laby_model)))
         random_column = int(random.uniform(0, len(laby_model[0])))
         is_good = is_good_starting_point(laby_model, random_row, random_column)
         print(is_good)
         if is_good:
-            break
+            return (random_row, random_column)
 
-    return (random_row, random_column)
+    return None
 
 
 def is_possible_wall_right(laby_model, row, column):
@@ -78,8 +82,8 @@ def is_possible_wall_right(laby_model, row, column):
 def is_possible_wall_left(laby_model, row, column):
     if column == 0:
         return False
-    # look if wall coming from left
-    if laby_model[row][column-1] & 2:
+    # look if wall on left point
+    if laby_model[row][column-1] != 0:
         return False
     # look if wall coming from up-left
     if row != 0 and laby_model[row-1][column-1] & 1:
@@ -92,8 +96,14 @@ def is_possible_wall_left(laby_model, row, column):
 def is_possible_wall_up(laby_model, row, column):
     if row == 0:
         return False
+    # look if wall coming from up
+    if laby_model[row-1][column] & 1:
+        return False
     # look if wall coming from up-left
     if laby_model[row-1][column-1] & 2:
+        return False
+    # look if wall going from up to up-right
+    if laby_model[row-1][column] & 2:
         return False
     # look if wall coming from up-up
     if row >= 2 and laby_model[row-2][column] & 1:
@@ -105,6 +115,9 @@ def is_possible_wall_down(laby_model, row, column):
         return False
     if row+1 >= len(laby_model):
         return False
+    # look if wall strating from down
+    if laby_model[row+1][column] != 0:
+        return False
     # look if wall coming from down-left
     if column >= 1 and laby_model[row+1][column-1] & 2:
         return False
@@ -114,7 +127,9 @@ def create_random_wall(laby_model, row, column):
     # Get possible directions "up", "left", "right", "down"
     # right?
 
-    while True:
+    n_walls = 4
+    while n_walls >= 0:
+        n_walls -= 1
         possibilities = []
         if is_possible_wall_right(laby_model, row, column):
             possibilities.append("right")
@@ -132,6 +147,7 @@ def create_random_wall(laby_model, row, column):
 
         # Choose a possibiity of direction
         direction = possibilities[int(random.uniform(0, len(possibilities)))]
+        print("chosen=", direction)
 
         if direction == "right":
             laby_model[row][column] += 2
@@ -147,17 +163,26 @@ def create_random_wall(laby_model, row, column):
             column -= 1
 
 # 
-laby_model = [ [3, 0,   2,   2,   2,   2,   2,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [1, 0,   0,   0,   0,   0,   0,   1  ],
-               [2, 2,   2,   2,   2,   0,   2,   0  ]]
+# laby_model = [ [3, 0,   2,   2,   2,   2,   2,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [1, 0,   0,   0,   0,   0,   0,   1  ],
+#                [2, 2,   2,   2,   2,   0,   2,   0  ]]
 
-CANVAS_HEIGHT = 250
-CANVAS_WIDTH = 300
+laby_model = []
+N_COLUMNS = 15
+N_ROWS = 15
+laby_model.append([3, 0] + [2] * (N_COLUMNS-3) + [1])
+for i in range(N_ROWS-2):
+    laby_model.append([1] + [0] * (N_COLUMNS-2) + [1])
+laby_model.append([2] * (N_COLUMNS-3) + [0, 2, 0])
+
+
+CANVAS_HEIGHT = 1000
+CANVAS_WIDTH = 1000
 X_PACE = CANVAS_WIDTH / (len(laby_model[0]) + 1)
 Y_PACE = CANVAS_HEIGHT / (len(laby_model) + 1)
 X0 = X_PACE
@@ -165,6 +190,7 @@ Y0 = Y_PACE
 
 #laby_model = randomize(laby_model[:])
 
+random.seed(0)
 
 window = tkinter.Tk()
 
@@ -173,12 +199,16 @@ title.pack()
 canvas = tkinter.Canvas(window, bg="white", height=CANVAS_HEIGHT, width=CANVAS_WIDTH)
 #line = canvas.create_line(10, 10, 200, 200, fill='black')
 
-
-while True:
-    (row, column) = select_starting_point(laby_model)
-    canvas.create_text(X0+X_PACE*column, Y0+Y_PACE*row, text='x')
+count = 0
+while count < 1000:
+    count += 1
+    starting_point = select_starting_point(laby_model)
+    if starting_point is None:
+        break
+    (row, column) = starting_point
+    print("starting_point=", starting_point)
+    #canvas.create_text(X0+X_PACE*column, Y0+Y_PACE*row, text='x')
     create_random_wall(laby_model, row, column)
-    break
 
 display(canvas, laby_model)
 
