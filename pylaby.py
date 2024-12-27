@@ -3,7 +3,7 @@ import sys
 import tkinter
 import time
 
-DEBUG = 0
+DEBUG = 1
 
 def debug(*msg):
     if DEBUG:
@@ -11,9 +11,23 @@ def debug(*msg):
 
 def key_press(event):
     t = event.keysym
-    if t == 'q':
+    if t == 'q': # "quit"
         debug('quit...')
         sys.exit(0)
+    elif t == 'n': # "next"
+        create_new_wall(canvas, laby_model)
+    elif t == 's': # "stop"
+        window.stop_wall = True
+
+
+def draw_next_wall(count_left):
+    if window.stop_wall:
+        return
+    if count_left <= 0:
+        return
+    create_new_wall(canvas, laby_model)
+    window.after(100, draw_next_wall, count_left-1)
+
 
 def draw_wall(canvas, row, column, value):
     if value == 0:
@@ -59,15 +73,46 @@ def is_good_starting_point(laby_model, random_row, random_column):
 def select_starting_point(laby_model):
     count = 0
     # Look for a valid starting point
-    # If not found after 1000 attempts, then consider that no starting point is available
-    while count < 1000:
-        count += 1
-        random_row = int(random.uniform(0, len(laby_model)))
-        random_column = int(random.uniform(0, len(laby_model[0])))
-        is_good = is_good_starting_point(laby_model, random_row, random_column)
-        debug(is_good)
-        if is_good:
-            return (random_row, random_column)
+    # - draw a random point
+    # - if valid: ok
+    # - if not valid, look for the nearest valid in a random direction
+    random_row = int(random.uniform(0, len(laby_model)))
+    random_column = int(random.uniform(0, len(laby_model[0])))
+    is_good = is_good_starting_point(laby_model, random_row, random_column)
+    debug("is_good=", is_good)
+    if is_good:
+        return (random_row, random_column)
+    # else: draw a random direction
+    direction = random.choice(['up', 'down', 'left', 'right'])
+    debug("select_starting_point: direction=", direction)
+    if direction == 'up':
+        while random_row > 0:
+            random_row -= 1
+            is_good = is_good_starting_point(laby_model, random_row, random_column)
+            if is_good:
+                return (random_row, random_column)
+        # not found. Should not be possible as the laby is surrounded by walls
+    elif direction == 'down':
+        while random_row < len(laby_model)-1:
+            random_row += 1
+            is_good = is_good_starting_point(laby_model, random_row, random_column)
+            if is_good:
+                return (random_row, random_column)
+        # not found. Should not be possible as the laby is surrounded by walls
+    elif direction == 'left':
+        while random_column > 0:
+            random_column -= 1
+            is_good = is_good_starting_point(laby_model, random_row, random_column)
+            if is_good:
+                return (random_row, random_column)
+        # not found. Should not be possible as the laby is surrounded by walls
+    elif direction == 'left':
+        while random_column < len(laby_model[0])-1:
+            random_column += 1
+            is_good = is_good_starting_point(laby_model, random_row, random_column)
+            if is_good:
+                return (random_row, random_column)
+        # not found. Should not be possible as the laby is surrounded by walls
 
     return None
 
@@ -133,7 +178,7 @@ def create_random_wall(laby_model, row, column, canvas):
     # Get possible directions "up", "left", "right", "down"
     # right?
 
-    n_walls = int(random.uniform(1, len(laby_model)))
+    n_walls = int(random.uniform(1, len(laby_model)*3))
     debug("n_walls=", n_walls)
 
     while n_walls >= 0:
@@ -170,6 +215,16 @@ def create_random_wall(laby_model, row, column, canvas):
             laby_model[row][column-1] += 2
             column -= 1
 
+
+def create_new_wall(canvas, laby_model):
+    starting_point = select_starting_point(laby_model)
+    debug("starting_point=", starting_point)
+
+    if starting_point is not None:
+        (row, column) = starting_point
+        create_random_wall(laby_model, row, column, canvas)
+        display(canvas, laby_model)
+
 # 
 # laby_model = [ [3, 0,   2,   2,   2,   2,   2,   1  ],
 #                [1, 0,   0,   0,   0,   0,   0,   1  ],
@@ -189,8 +244,8 @@ for i in range(N_ROWS-2):
 laby_model.append([2] * (N_COLUMNS-3) + [0, 2, 0])
 
 
-CANVAS_HEIGHT = 1000
-CANVAS_WIDTH = 1000
+CANVAS_HEIGHT = 500
+CANVAS_WIDTH = 500
 X_PACE = CANVAS_WIDTH / (len(laby_model[0]) + 1)
 Y_PACE = CANVAS_HEIGHT / (len(laby_model) + 1)
 X0 = X_PACE
@@ -198,27 +253,16 @@ Y0 = Y_PACE
 
 #laby_model = randomize(laby_model[:])
 
-#random.seed(0)
+random.seed(0)
 
 window = tkinter.Tk()
 
 title = tkinter.Label(window, text="pylaby")
 title.pack()
 canvas = tkinter.Canvas(window, bg="white", height=CANVAS_HEIGHT, width=CANVAS_WIDTH)
-#line = canvas.create_line(10, 10, 200, 200, fill='black')
-
-count = 0
-while count < 10000:
-    count += 1
-    starting_point = select_starting_point(laby_model)
-    if starting_point is None:
-        break
-    (row, column) = starting_point
-    debug("starting_point=", starting_point)
-    create_random_wall(laby_model, row, column, canvas)
-
-display(canvas, laby_model)
 canvas.pack()
 window.bind('<KeyPress>', key_press)
+timer = window.after(500, draw_next_wall, 1000)
+window.stop_wall = False
 window.mainloop()
 
