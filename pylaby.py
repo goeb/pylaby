@@ -3,7 +3,7 @@ import sys
 import tkinter
 import time
 
-DEBUG = 1
+DEBUG = 0
 
 def debug(*msg):
     if DEBUG:
@@ -26,7 +26,7 @@ def draw_next_wall(count_left):
     if count_left <= 0:
         return
     create_new_wall(canvas, laby_model)
-    window.after(100, draw_next_wall, count_left-1)
+    window.after(50, draw_next_wall, count_left-1)
 
 
 def draw_wall(canvas, row, column, value):
@@ -253,7 +253,7 @@ Y0 = Y_PACE
 
 #laby_model = randomize(laby_model[:])
 
-random.seed(0)
+#random.seed(0)
 
 window = tkinter.Tk()
 
@@ -262,7 +262,7 @@ title.pack()
 canvas = tkinter.Canvas(window, bg="white", height=CANVAS_HEIGHT, width=CANVAS_WIDTH)
 canvas.pack()
 window.bind('<KeyPress>', key_press)
-timer = window.after(500, draw_next_wall, 1000)
+timer = window.after(50, draw_next_wall, 1000)
 window.stop_wall = False
 window.mainloop()
 
